@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quick Attendance</title>
+<style>
+  :root { --bg: #f6f7f9; --text: #1b1f24; --muted: #5f6b7a; --accent: #2457c5; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #121417; --text: #e9edf1; --muted: #9aa5b1; --accent: #6d97f0; } }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 640px; margin: 0 auto; padding: 40px 16px; }
+  p, li { color: var(--muted); } a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Quick Attendance for Excel</h1>
+  <p>An Excel add-in for taking class attendance. Open your attendance sheet, click <b>Take Attendance</b> on the Home tab, and tap Present or Absent for each student. Every mark is written straight into the sheet.</p>
+  <h2>Install</h2>
+  <ol>
+    <li>Download <a href="manifest.xml" download>manifest.xml</a>.</li>
+    <li>Excel on the web: open any workbook, then <b>Home → Add-ins → More Add-ins → My Add-ins → Upload My Add-in</b>, and choose the file.</li>
+    <li>For everyone at once, an IT admin can upload the same file in the Microsoft 365 admin center under <b>Settings → Integrated apps → Upload custom apps</b>.</li>
+  </ol>
+</main>
+</body>
+</html>

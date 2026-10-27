@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Quick Attendance: Excel add-in manifest.
+  Before installing, replace every https://YOUR-GITHUB-USERNAME.github.io/quick-attendance
+  with the address where you uploaded the excel-addin folder (see README).
+-->
+<OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0"
+           xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
+           xsi:type="TaskPaneApp">
+  <Id>01ba5c31-3b04-4a5f-90dd-a6cfd4d4a436</Id>
+  <Version>1.0.0.0</Version>
+  <ProviderName>Quick Attendance</ProviderName>
+  <DefaultLocale>en-US</DefaultLocale>
+  <DisplayName DefaultValue="Quick Attendance"/>
+  <Description DefaultValue="Take class attendance one student at a time. Tap Present or Absent and the mark goes straight into the sheet."/>
+  <IconUrl DefaultValue="https://YOUR-GITHUB-USERNAME.github.io/quick-attendance/assets/icon-32.png"/>
+  <HighResolutionIconUrl DefaultValue="https://YOUR-GITHUB-USERNAME.github.io/quick-attendance/assets/icon-64.png"/>
+  <SupportUrl DefaultValue="https://YOUR-GITHUB-USERNAME.github.io/quick-attendance/index.html"/>
+  <Hosts>
+    <Host Name="Workbook"/>
+  </Hosts>
+  <Requirements>
+    <Sets DefaultMinVersion="1.1">
+      <Set Name="ExcelApi" MinVersion="1.7"/>
+    </Sets>
+  </Requirements>
+  <DefaultSettings>
+    <SourceLocation DefaultValue="https://YOUR-GITHUB-USERNAME.github.io/quick-attendance/taskpane.html"/>
+  </DefaultSettings>
+  <Permissions>ReadWriteDocument</Permissions>
+  <VersionOverrides xmlns="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="VersionOverridesV1_0">
+    <Hosts>
+      <Host xsi:type="Workbook">
+        <DesktopFormFactor>
+          <GetStarted>
+            <Title resid="GetStarted.Title"/>
+            <Description resid="GetStarted.Description"/>
+            <LearnMoreUrl resid="GetStarted.LearnMoreUrl"/>
+          </GetStarted>
+          <FunctionFile resid="Commands.Url"/>
+          <ExtensionPoint xsi:type="PrimaryCommandSurface">
+            <OfficeTab id="TabHome">
+              <Group id="QuickAttendance.Group">
+                <Label resid="Group.Label"/>
+                <Icon>
+                  <bt:Image size="16" resid="Icon.16"/>
+                  <bt:Image size="32" resid="Icon.32"/>
+                  <bt:Image size="80" resid="Icon.80"/>
+                </Icon>
+                <Control xsi:type="Button" id="QuickAttendance.Open">
+                  <Label resid="Button.Label"/>
+                  <Supertip>
+                    <Title resid="Button.Label"/>
+                    <Description resid="Button.Tooltip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16"/>
+                    <bt:Image size="32" resid="Icon.32"/>
+                    <bt:Image size="80" resid="Icon.80"/>
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <TaskpaneId>QuickAttendance</TaskpaneId>
+                    <SourceLocation resid="Taskpane.Url"/>
+                  </Action>
+                </Control>
+              </Group>
+            </OfficeTab>
+          </ExtensionPoint>
+        </DesktopFormFactor>
+      </Host>
+    </Hosts>
+    <Resources>
+      <bt:Images>
+        <bt:Image id="Icon.16" DefaultValue="https://YOUR-GITHUB-USERNAME.github.io/quick-attendance/assets/icon-16.png"/>
+        <bt:Image id="Icon.32" DefaultValue="https://YOUR-GITHUB-USERNAME.github.io/quick-attendance/assets/icon-32.png"/>
+        <bt:Image id="Icon.80" DefaultValue="https://YOUR-GITHUB-USERNAME.github.io/quick-attendance/assets/icon-80.png"/>
+      </bt:Images>
+      <bt:Urls>
+        <bt:Url id="Commands.Url" DefaultValue="https://YOUR-GITHUB-USERNAME.github.io/quick-attendance/commands.html"/>
+        <bt:Url id="Taskpane.Url" DefaultValue="https://YOUR-GITHUB-USERNAME.github.io/quick-attendance/taskpane.html"/>
+        <bt:Url id="GetStarted.LearnMoreUrl" DefaultValue="https://YOUR-GITHUB-USERNAME.github.io/quick-attendance/index.html"/>
+      </bt:Urls>
+      <bt:ShortStrings>
+        <bt:String id="GetStarted.Title" DefaultValue="Quick Attendance is ready"/>
+        <bt:String id="Group.Label" DefaultValue="Attendance"/>
+        <bt:String id="Button.Label" DefaultValue="Take Attendance"/>
+      </bt:ShortStrings>
+      <bt:LongStrings>
+        <bt:String id="GetStarted.Description" DefaultValue="Open your attendance sheet, then click Take Attendance on the Home tab."/>
+        <bt:String id="Button.Tooltip" DefaultValue="Go through the class list one student at a time and mark Present or Absent."/>
+      </bt:LongStrings>
+    </Resources>
+  </VersionOverrides>
+</OfficeApp>

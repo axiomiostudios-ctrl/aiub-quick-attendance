@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quick Attendance</title>
+<script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+<style>
+  :root {
+    --bg: #f6f7f9; --surface: #ffffff; --text: #1b1f24; --muted: #5f6b7a; --line: #dde2e8;
+    --accent: #2457c5; --accent-text: #ffffff;
+    --present: #1f8a4c; --present-soft: #e3f4ea; --absent: #c63a32; --absent-soft: #fbe7e5;
+    --warn: #9a6400; --warn-soft: #fff3d6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #121417; --surface: #1c1f24; --text: #e9edf1; --muted: #9aa5b1; --line: #2e333a;
+      --accent: #6d97f0; --accent-text: #0d1117;
+      --present: #4cc483; --present-soft: #173326; --absent: #f0726a; --absent-soft: #3a1c1a;
+      --warn: #f0c060; --warn-soft: #3a2e12;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { padding: 12px 12px 32px; max-width: 520px; margin: 0 auto; }
+  .status { font-size: 13px; padding: 6px 10px; border-radius: 8px; margin-bottom: 10px; }
+  .status:empty { display: none; }
+  .status.ok { background: var(--present-soft); color: var(--present); }
+  .status.warn { background: var(--warn-soft); color: var(--warn); }
+  .status.err { background: var(--absent-soft); color: var(--absent); cursor: pointer; }
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  h2 { font-size: 17px; margin: 0 0 4px; word-break: break-word; }
+  .hint { color: var(--muted); font-size: 13px; }
+  button { font: inherit; cursor: pointer; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--text); padding: 8px 12px; }
+  button.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 600; }
+  button.wide { width: 100%; padding: 12px; font-size: 16px; }
+  button.link { border: none; background: none; color: var(--accent); padding: 0; font-size: 13px; }
+  button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  button:disabled { opacity: .5; cursor: default; }
+  .fields { display: grid; gap: 10px; margin: 14px 0 6px; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  label { display: flex; flex-direction: column; gap: 3px; font-size: 13px; color: var(--muted); }
+  select, input { font: inherit; font-size: 14px; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; min-width: 0; width: 100%; }
+  .progress { height: 6px; background: var(--line); border-radius: 999px; overflow: hidden; }
+  #bar { height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+  .counts { display: flex; justify-content: space-between; color: var(--muted); font-size: 13px; margin: 6px 0 10px; }
+  .card { background: var(--surface); border: 2px solid var(--line); border-radius: 14px; padding: 22px 12px; text-align: center; transition: border-color .15s, background .15s; }
+  .card.is-P { border-color: var(--present); } .card.is-A { border-color: var(--absent); }
+  .card.flash-P { background: var(--present-soft); } .card.flash-A { background: var(--absent-soft); }
+  .sid { font-size: 16px; color: var(--muted); font-variant-numeric: tabular-nums; letter-spacing: .5px; }
+  .sname { font-size: 24px; font-weight: 700; margin-top: 4px; word-break: break-word; }
+  .current { margin-top: 8px; font-size: 13px; min-height: 19px; color: var(--muted); }
+  .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+  .actions button { padding: 18px 6px; font-size: 18px; font-weight: 700; border: none; border-radius: 12px; color: #fff; }
+  .actions .absent { background: var(--absent); } .actions .present { background: var(--present); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .actions button { color: #0d1117; } }
+  kbd { font: 11px ui-monospace, monospace; opacity: .75; border: 1px solid currentColor; border-radius: 4px; padding: 0 3px; margin-left: 6px; vertical-align: middle; }
+  .sub { display: flex; justify-content: space-between; gap: 6px; margin-top: 8px; }
+  .sub button { font-size: 13px; padding: 6px 10px; background: transparent; }
+  .rest { width: 100%; margin-top: 8px; font-size: 13px; background: transparent; }
+  details { margin-top: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
+  summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+  #roster { list-style: none; padding: 0; margin: 8px 0 0; max-height: 300px; overflow: auto; }
+  #roster li { display: flex; gap: 8px; align-items: center; padding: 5px 6px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+  #roster li:hover, #roster li.cur { background: var(--bg); }
+  #roster .tag { width: 22px; text-align: center; font-weight: 700; font-size: 12px; border-radius: 5px; flex: none; }
+  #roster .P .tag { background: var(--present-soft); color: var(--present); }
+  #roster .A .tag { background: var(--absent-soft); color: var(--absent); }
+  #roster .id { color: var(--muted); font-variant-numeric: tabular-nums; flex: none; }
+  #roster .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .stack { display: grid; gap: 8px; margin-top: 14px; }
+  .big-num b { font-size: 22px; }
+  ul.abs { padding-left: 18px; font-size: 14px; } ul.abs li { margin: 2px 0; }
+</style>
+</head>
+<body>
+<main>
+  <div id="status" class="status" role="status"></div>
+
+  <section id="stepLoading" class="panel"><p class="hint">Reading your sheet…</p></section>
+
+  <section id="stepSetup" class="panel" hidden>
+    <h2 id="sheetTitle"></h2>
+    <button id="reloadBtn" class="link">Use the sheet I'm on now ↻</button>
+    <div class="fields">
+      <div class="two">
+        <label>Header row <input type="number" id="headerRow" min="1"></label>
+        <label>Marks as
+          <select id="markStyle">
+            <option value="P|A">P / A</option>
+            <option value="Present|Absent">Present / Absent</option>
+            <option value="1|0">1 / 0</option>
+          </select>
+        </label>
+      </div>
+      <label>Student ID column <select id="idCol"></select></label>
+      <label>Name column <select id="nameCol"></select></label>
+      <label>Today's attendance column <select id="attCol"></select></label>
+      <label id="newHeaderWrap">Header for the new column <input id="newHeader"></label>
+    </div>
+    <p id="setupInfo" class="hint"></p>
+    <button id="startBtn" class="primary wide">Start roll call</button>
+  </section>
+
+  <section id="stepMark" hidden>
+    <div class="progress"><div id="bar"></div></div>
+    <div class="counts"><span id="pos"></span><span><b id="cP">0</b> present · <b id="cA">0</b> absent</span></div>
+    <div class="card" id="card">
+      <div class="sid" id="sid"></div>
+      <div class="sname" id="sname"></div>
+      <div class="current" id="curMark"></div>
+    </div>
+    <div class="actions">
+      <button id="absentBtn" class="absent">Absent<kbd>A</kbd></button>
+      <button id="presentBtn" class="present">Present<kbd>P</kbd></button>
+    </div>
+    <div class="sub">
+      <button id="backBtn">← Back</button>
+      <button id="skipBtn">Skip →</button>
+    </div>
+    <button id="restPresentBtn" class="rest">Mark everyone left as Present</button>
+    <details><summary>Full list (tap a name to change it)</summary><ol id="roster"></ol></details>
+  </section>
+
+  <section id="stepDone" class="panel" hidden>
+    <h2>Attendance complete</h2>
+    <p class="big-num" id="doneSummary"></p>
+    <div id="absentList"></div>
+    <div class="stack">
+      <button id="reviewBtn">Review / change marks</button>
+      <button id="againBtn">Take another attendance</button>
+    </div>
+  </section>
+</main>
+<script>// Excel add-in backend for the Quick Attendance panel (Office.js).
+window.QA_BACKEND = {
+  ready: () => new Promise(resolve => Office.onReady(() => resolve(undefined))),
+
+  load: () => Excel.run(async ctx => {
+    const ws = ctx.workbook.worksheets.getActiveWorksheet();
+    ws.load('name');
+    const used = ws.getUsedRangeOrNullObject(true);
+    used.load(['text', 'rowIndex', 'columnIndex']);
+    await ctx.sync();
+    /** @type {string[][]} */
+    const grid = [];
+    if (!used.isNullObject) {
+      for (let r = 0; r < used.rowIndex; r++) grid.push([]);
+      used.text.forEach(row => grid.push(Array(used.columnIndex).fill('').concat(row)));
+    }
+    return { sheet: ws.name, grid };
+  }),
+
+  addColumn: (sheet, hdrRow, col, header, lastRow) => Excel.run(async ctx => {
+    const ws = ctx.workbook.worksheets.getItem(sheet);
+    const rows = lastRow - hdrRow + 1;
+    if (col > 1 && Office.context.requirements.isSetSupported('ExcelApi', '1.9')) {
+      const left = ws.getRangeByIndexes(hdrRow - 1, col - 2, rows, 1);
+      ws.getRangeByIndexes(hdrRow - 1, col - 1, rows, 1).copyFrom(left, Excel.RangeCopyType.formats);
+      left.format.load('columnWidth');
+      await ctx.sync();
+      ws.getRangeByIndexes(hdrRow - 1, col - 1, 1, 1).format.columnWidth = left.format.columnWidth;
+    }
+    ws.getRangeByIndexes(hdrRow - 1, col - 1, 1, 1).values = [[header]];
+    await ctx.sync();
+  }),
+
+  write: (sheet, cells, focus) => Excel.run(async ctx => {
+    const ws = ctx.workbook.worksheets.getItem(sheet);
+    for (const { r, c, v } of cells) ws.getRangeByIndexes(r - 1, c - 1, 1, 1).values = [[v]];
+    if (focus) {
+      ws.activate();
+      ws.getRangeByIndexes(focus.r - 1, focus.c1 - 1, 1, focus.c2 - focus.c1 + 1).select();
+    }
+    await ctx.sync();
+  }),
+};
+</script>
+<script>// Shared roll-call panel. Talks to the spreadsheet only through `QA_BACKEND`:
+//   ready()                                   -> Promise
+//   load()                                    -> Promise<{ sheet, grid: string[][] }>  (display text, grid[0][0] = A1)
+//   addColumn(sheet, hdrRow, col, header, lastRow) -> Promise
+//   write(sheet, cells: {r,c,v}[], focus: {r,c1,c2} | null) -> Promise
+// Rows and columns are 1-based throughout.
+(() => {
+  const B = window.QA_BACKEND;
+  const $ = id => document.getElementById(id);
+  const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  let sheet = '', grid = [];
+  let hdrRow = 1, idCol = 0, nameCol = 0, attCol = 0, newColIdx = 0;
+  let valP = 'P', valA = 'A';
+  let students = [], marks = [], idx = 0;
+  let outbox = [], focus = null, focusDirty = false, flushing = false;
+
+  // ---------- helpers ----------
+  const colLetter = n => { let s = ''; while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; };
+  const txt = (r, c) => String(((grid[r - 1] || [])[c - 1]) ?? '').trim();
+  const kindOf = t => /^(p|present|1|yes|y)$/i.test(t) ? 'P' : /^(a|absent|0|no|n)$/i.test(t) ? 'A' : '';
+  const show = id => ['stepLoading', 'stepSetup', 'stepMark', 'stepDone'].forEach(s => $(s).hidden = s !== id);
+  const setStatus = (text, cls) => { const el = $('status'); el.textContent = text; el.className = 'status ' + (cls || ''); };
+  const errText = e => (e && (e.message || e.toString())) || 'Unknown error';
+  function todayLabel() { const d = new Date(); return `${d.getDate()} ${MON[d.getMonth()]} ${d.getFullYear()}`; }
+
+  // Spreadsheets turn "26 Oct 2026" into a date and show it their own way, so match today's header loosely.
+  function isToday(t) {
+    const d = new Date(), D = d.getDate(), M = d.getMonth() + 1, Y = d.getFullYear();
+    const yOk = y => !y || +y === Y || +y === Y % 100;
+    const mon = s => MON.findIndex(x => s.toLowerCase().startsWith(x.toLowerCase())) + 1;
+    let m;
+    if ((m = t.match(/^(\d{1,2})[\s\-\/.]*([A-Za-z]{3,})[\s\-\/.,]*(\d{2,4})?$/))) return +m[1] === D && mon(m[2]) === M && yOk(m[3]);
+    if ((m = t.match(/^(?:[A-Za-z]+,\s*)?([A-Za-z]{3,})[\s\-\/.]*(\d{1,2}),?[\s\-\/.]*(\d{2,4})?$/))) return mon(m[1]) === M && +m[2] === D && yOk(m[3]);
+    if ((m = t.match(/^(\d{4})[\-\/.](\d{1,2})[\-\/.](\d{1,2})$/))) return yOk(m[1]) && +m[2] === M && +m[3] === D;
+    if ((m = t.match(/^(\d{1,2})[\-\/.](\d{1,2})(?:[\-\/.](\d{2,4}))?$/))) return yOk(m[3]) && ((+m[1] === D && +m[2] === M) || (+m[1] === M && +m[2] === D));
+    return false;
+  }
+
+  // ---------- load & setup ----------
+  async function loadSheet() {
+    show('stepLoading'); setStatus('');
+    try {
+      ({ sheet, grid } = await B.load());
+    } catch (e) { setStatus('Could not read the sheet: ' + errText(e), 'err'); return; }
+    $('sheetTitle').textContent = 'Sheet: ' + sheet;
+    const d = detectHeader();
+    $('headerRow').value = d.r;
+    fillColumns(d.id, d.nm);
+    show('stepSetup');
+  }
+  function detectHeader() {
+    for (let r = 1; r <= Math.min(30, grid.length); r++) {
+      let id = 0, nm = 0;
+      (grid[r - 1] || []).forEach((_, i) => {
+        const t = txt(r, i + 1);
+        if (!id && /\bid\b|\bid\s*(no|#)|roll/i.test(t)) id = i + 1;
+        if (!nm && /name/i.test(t)) nm = i + 1;
+      });
+      if (id && nm) return { r, id, nm };
+    }
+    return { r: 1, id: 1, nm: 2 };
+  }
+  function fillColumns(idDefault, nmDefault) {
+    hdrRow = Math.max(1, +$('headerRow').value || 1);
+    const width = Math.max(0, ...grid.map(row => row.length));
+    let last = 0;
+    for (let c = 1; c <= width; c++) if (txt(hdrRow, c)) last = c;
+    newColIdx = last + 1;
+    const opt = c => new Option(`${colLetter(c)}: ${txt(hdrRow, c) || '(empty)'}`, String(c));
+    for (const sel of ['idCol', 'nameCol', 'attCol']) $(sel).innerHTML = '';
+    for (let c = 1; c <= Math.max(width, 2); c++) { $('idCol').add(opt(c)); $('nameCol').add(opt(c)); }
+    $('idCol').value = String(idDefault); $('nameCol').value = String(nmDefault);
+
+    $('attCol').add(new Option(`➕ Add a new column (${colLetter(newColIdx)})`, 'new'));
+    let match = '';
+    for (let c = 1; c <= width; c++) {
+      if (c === +idDefault || c === +nmDefault) continue;
+      $('attCol').add(opt(c));
+      if (!match && isToday(txt(hdrRow, c))) match = String(c);
+    }
+    $('attCol').value = match || 'new';
+    $('newHeader').value = todayLabel();
+    onAttChange();
+  }
+  function buildStudents() {
+    hdrRow = Math.max(1, +$('headerRow').value || 1);
+    idCol = +$('idCol').value; nameCol = +$('nameCol').value;
+    const list = [];
+    for (let r = hdrRow + 1; r <= grid.length; r++) {
+      const id = txt(r, idCol);
+      if (id) list.push({ r, id, name: txt(r, nameCol) });
+    }
+    return list;
+  }
+  function onAttChange() {
+    $('newHeaderWrap').hidden = $('attCol').value !== 'new';
+    students = buildStudents();
+    $('startBtn').disabled = !students.length;
+    if (!students.length) { $('setupInfo').textContent = 'No students found under the header row. Check the header row and the ID column.'; return; }
+    const col = $('attCol').value === 'new' ? newColIdx : +$('attCol').value;
+    $('setupInfo').textContent = `Found ${students.length} students (rows ${students[0].r}–${students[students.length - 1].r}). Marks go in column ${colLetter(col)}.`;
+  }
+  $('reloadBtn').onclick = loadSheet;
+  $('headerRow').onchange = () => { const d = detectHeader(); fillColumns(+$('idCol').value || d.id, +$('nameCol').value || d.nm); };
+  $('idCol').onchange = $('nameCol').onchange = () => fillColumns(+$('idCol').value, +$('nameCol').value);
+  $('attCol').onchange = onAttChange;
+
+  $('startBtn').onclick = async () => {
+    students = buildStudents();
+    if (!students.length) return;
+    [valP, valA] = $('markStyle').value.split('|').map(v => /^\d+$/.test(v) ? Number(v) : v);
+    if ($('attCol').value === 'new') {
+      attCol = newColIdx;
+      const header = $('newHeader').value.trim() || todayLabel();
+      $('startBtn').disabled = true; setStatus('Adding the new column…', 'warn');
+      try {
+        await B.addColumn(sheet, hdrRow, attCol, header, students[students.length - 1].r);
+      } catch (e) {
+        $('startBtn').disabled = false; setStatus('Could not add the column: ' + errText(e), 'err'); return;
+      }
+      (grid[hdrRow - 1] = grid[hdrRow - 1] || [])[attCol - 1] = header;
+      setStatus('');
+      fillColumns(idCol, nameCol);
+      $('attCol').value = String(attCol); onAttChange();
+      $('startBtn').disabled = false;
+    } else {
+      attCol = +$('attCol').value;
+    }
+    marks = students.map(s => kindOf(txt(s.r, attCol)));
+    const firstOpen = marks.indexOf('');
+    idx = firstOpen === -1 ? 0 : firstOpen;
+    show('stepMark'); render(); queue([]);
+  };
+
+  // ---------- marking ----------
+  function render() {
+    const s = students[idx], k = marks[idx];
+    $('sid').textContent = s.id; $('sname').textContent = s.name || '(no name)';
+    $('card').className = 'card' + (k ? ' is-' + k : '');
+    $('curMark').textContent = k ? `Currently marked ${k === 'P' ? 'Present' : 'Absent'}` : '';
+    $('pos').textContent = `${idx + 1} of ${students.length}`;
+    const p = marks.filter(m => m === 'P').length, a = marks.filter(m => m === 'A').length;
+    $('cP').textContent = String(p); $('cA').textContent = String(a);
+    $('bar').style.width = ((p + a) / students.length * 100) + '%';
+    $('backBtn').disabled = idx === 0;
+    const ol = $('roster'); ol.innerHTML = '';
+    students.forEach((x, i) => {
+      const li = document.createElement('li');
+      li.className = (marks[i] || '') + (i === idx ? ' cur' : '');
+      li.innerHTML = '<span class="tag"></span><span class="id"></span><span class="nm"></span>';
+      li.children[0].textContent = marks[i] || '·'; li.children[1].textContent = x.id; li.children[2].textContent = x.name;
+      li.onclick = () => { idx = i; show('stepMark'); render(); queue([]); window.scrollTo(0, 0); };
+      ol.appendChild(li);
+    });
+  }
+  const cellFor = (i, kind) => ({ r: students[i].r, c: attCol, v: kind === 'P' ? valP : valA });
+  function mark(kind) {
+    marks[idx] = kind;
+    const cell = cellFor(idx, kind);
+    const card = $('card'); card.classList.add('flash-' + kind);
+    setTimeout(() => card.classList.remove('flash-' + kind), 180);
+    if (idx < students.length - 1) { idx++; render(); queue([cell]); } else { queue([cell]); finish(); }
+  }
+  function next() { if (idx < students.length - 1) { idx++; render(); queue([]); } else finish(); }
+  $('presentBtn').onclick = () => mark('P');
+  $('absentBtn').onclick = () => mark('A');
+  $('skipBtn').onclick = next;
+  $('backBtn').onclick = () => { if (idx > 0) { idx--; render(); queue([]); } };
+  $('restPresentBtn').onclick = () => {
+    const rest = [];
+    for (let i = idx; i < students.length; i++) if (!marks[i]) rest.push(i);
+    if (!rest.length) return finish();
+    if (!confirm(`Mark ${rest.length} remaining unmarked student(s) as Present?`)) return;
+    rest.forEach(i => marks[i] = 'P');
+    queue(rest.map(i => cellFor(i, 'P')));
+    finish();
+  };
+
+  document.addEventListener('keydown', e => {
+    if ($('stepMark').hidden || e.target.matches('input, select, textarea') || e.ctrlKey || e.metaKey || e.altKey) return;
+    const k = e.key.toLowerCase();
+    if (k === 'p' || k === 'arrowright') mark('P');
+    else if (k === 'a' || k === 'arrowleft') mark('A');
+    else if (k === 'backspace' || k === 'arrowup') $('backBtn').click();
+    else if (k === 's' || k === 'arrowdown') next();
+    else return;
+    e.preventDefault();
+  });
+
+  function finish() {
+    const p = marks.filter(m => m === 'P').length, un = marks.filter(m => !m).length;
+    const abs = students.filter((_, i) => marks[i] === 'A');
+    $('doneSummary').innerHTML = `<b>${p}</b> present · <b>${abs.length}</b> absent` + (un ? ` · <b>${un}</b> not marked` : '');
+    const box = $('absentList'); box.innerHTML = '';
+    if (abs.length) {
+      box.insertAdjacentHTML('beforeend', '<p class="hint">Absent:</p>');
+      const ul = document.createElement('ul'); ul.className = 'abs';
+      abs.forEach(s => { const li = document.createElement('li'); li.textContent = `${s.id}  ${s.name}`; ul.appendChild(li); });
+      box.appendChild(ul);
+    }
+    show('stepDone');
+  }
+  $('reviewBtn').onclick = () => { idx = 0; show('stepMark'); render(); queue([]); };
+  $('againBtn').onclick = loadSheet;
+
+  // ---------- writing ----------
+  // Taps never wait for the spreadsheet: marks queue up here and are sent in batches, in order.
+  function queue(cells) {
+    outbox.push(...cells);
+    const s = students[idx];
+    focus = s ? { r: s.r, c1: Math.min(idCol, nameCol, attCol), c2: Math.max(idCol, nameCol, attCol) } : null;
+    focusDirty = true;
+    flush();
+  }
+  async function flush() {
+    if (flushing) return;
+    flushing = true;
+    while (outbox.length || focusDirty) {
+      const cells = outbox; outbox = []; focusDirty = false;
+      if (cells.length) setStatus('Saving…', 'warn');
+      try {
+        await B.write(sheet, cells, focus);
+      } catch (e) {
+        outbox = cells.concat(outbox);
+        flushing = false;
+        setStatus(`Not saved: ${errText(e)} If you're typing in a cell, press Enter or Esc first. Click here to retry.`, 'err');
+        return;
+      }
+      if (cells.length && !outbox.length) setStatus('Saved in the sheet ✓', 'ok');
+    }
+    flushing = false;
+  }
+  $('status').onclick = () => { if ($('status').classList.contains('err')) { setStatus('Saving…', 'warn'); flush(); } };
+
+  B.ready().then(loadSheet, e => setStatus('Could not start: ' + errText(e), 'err'));
+})();
+</script>
+</body>
+</html>
