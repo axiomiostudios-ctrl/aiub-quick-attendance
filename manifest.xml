@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   Quick Attendance: Excel add-in manifest.
-  Before installing, replace every https://YOUR-GITHUB-USERNAME.github.io/quick-attendance
+  Before installing, replace every https://https://github.com/axiomiostudios-ctrl.github.io/quick-attendance
   with the address where you uploaded the excel-addin folder (see README).
 -->
 <OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
@@ -15,9 +15,9 @@
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="Quick Attendance"/>
   <Description DefaultValue="Take class attendance one student at a time. Tap Present or Absent and the mark goes straight into the sheet."/>
-  <IconUrl DefaultValue="https://YOUR-GITHUB-USERNAME.github.io/quick-attendance/assets/icon-32.png"/>
-  <HighResolutionIconUrl DefaultValue="https://YOUR-GITHUB-USERNAME.github.io/quick-attendance/assets/icon-64.png"/>
-  <SupportUrl DefaultValue="https://YOUR-GITHUB-USERNAME.github.io/quick-attendance/index.html"/>
+  <IconUrl DefaultValue="https://https://github.com/axiomiostudios-ctrl.github.io/quick-attendance/assets/icon-32.png"/>
+  <HighResolutionIconUrl DefaultValue="https://https://github.com/axiomiostudios-ctrl.github.io/quick-attendance/assets/icon-64.png"/>
+  <SupportUrl DefaultValue="https://https://github.com/axiomiostudios-ctrl.github.io/quick-attendance/index.html"/>
   <Hosts>
     <Host Name="Workbook"/>
   </Hosts>
@@ -27,7 +27,7 @@
     </Sets>
   </Requirements>
   <DefaultSettings>
-    <SourceLocation DefaultValue="https://YOUR-GITHUB-USERNAME.github.io/quick-attendance/taskpane.html"/>
+    <SourceLocation DefaultValue="https://https://github.com/axiomiostudios-ctrl.github.io/quick-attendance/taskpane.html"/>
   </DefaultSettings>
   <Permissions>ReadWriteDocument</Permissions>
   <VersionOverrides xmlns="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="VersionOverridesV1_0">
@@ -73,14 +73,14 @@
     </Hosts>
     <Resources>
       <bt:Images>
-        <bt:Image id="Icon.16" DefaultValue="https://YOUR-GITHUB-USERNAME.github.io/quick-attendance/assets/icon-16.png"/>
-        <bt:Image id="Icon.32" DefaultValue="https://YOUR-GITHUB-USERNAME.github.io/quick-attendance/assets/icon-32.png"/>
-        <bt:Image id="Icon.80" DefaultValue="https://YOUR-GITHUB-USERNAME.github.io/quick-attendance/assets/icon-80.png"/>
+        <bt:Image id="Icon.16" DefaultValue="https://https://github.com/axiomiostudios-ctrl.github.io/quick-attendance/assets/icon-16.png"/>
+        <bt:Image id="Icon.32" DefaultValue="https://https://github.com/axiomiostudios-ctrl.github.io/quick-attendance/assets/icon-32.png"/>
+        <bt:Image id="Icon.80" DefaultValue="https://https://github.com/axiomiostudios-ctrl.github.io/quick-attendance/assets/icon-80.png"/>
       </bt:Images>
       <bt:Urls>
-        <bt:Url id="Commands.Url" DefaultValue="https://YOUR-GITHUB-USERNAME.github.io/quick-attendance/commands.html"/>
-        <bt:Url id="Taskpane.Url" DefaultValue="https://YOUR-GITHUB-USERNAME.github.io/quick-attendance/taskpane.html"/>
-        <bt:Url id="GetStarted.LearnMoreUrl" DefaultValue="https://YOUR-GITHUB-USERNAME.github.io/quick-attendance/index.html"/>
+        <bt:Url id="Commands.Url" DefaultValue="https://https://github.com/axiomiostudios-ctrl.github.io/quick-attendance/commands.html"/>
+        <bt:Url id="Taskpane.Url" DefaultValue="https://https://github.com/axiomiostudios-ctrl.github.io/quick-attendance/taskpane.html"/>
+        <bt:Url id="GetStarted.LearnMoreUrl" DefaultValue="https://https://github.com/axiomiostudios-ctrl.github.io/quick-attendance/index.html"/>
       </bt:Urls>
       <bt:ShortStrings>
         <bt:String id="GetStarted.Title" DefaultValue="Quick Attendance is ready"/>
