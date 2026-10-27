@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Quick Attendance for Excel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400..700&family=Geist+Mono:wght@400..600&display=swap">
+<style>
+  /* Layout: one quiet centred column; the student card and two thumb-sized choices carry the screen. */
+  :root {
+    --bg: #f5f6f7; --surface: #ffffff; --text: #101317; --muted: #687079; --faint: #9aa1a9; --line: #e6e8eb;
+    --ink: #121519; --ink-text: #ffffff;
+    --present: #0f7a55; --present-text: #ffffff; --present-soft: #e6f4ee;
+    --absent: #c23a30; --absent-soft: #fbecea;
+    --warn: #a36b00; --focus: #3a6ee0;
+    --shadow: 0 1px 2px rgba(16, 19, 23, .04), 0 8px 24px rgba(16, 19, 23, .05);
+    --radius: 16px;
+    --font: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0d0f12; --surface: #16191d; --text: #eceef1; --muted: #939aa4; --faint: #646b74; --line: #262a30;
+      --ink: #eef0f2; --ink-text: #0d0f12;
+      --present: #33c283; --present-text: #06150e; --present-soft: #13281e;
+      --absent: #ff7d72; --absent-soft: #2c1716;
+      --warn: #f0c060; --focus: #7ca3ff;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 28px rgba(0, 0, 0, .3);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0d0f12; --surface: #16191d; --text: #eceef1; --muted: #939aa4; --faint: #646b74; --line: #262a30;
+    --ink: #eef0f2; --ink-text: #0d0f12;
+    --present: #33c283; --present-text: #06150e; --present-soft: #13281e;
+    --absent: #ff7d72; --absent-soft: #2c1716;
+    --warn: #f0c060; --focus: #7ca3ff;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 28px rgba(0, 0, 0, .3);
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { background: var(--bg); }
+  body { margin: 0; color: var(--text); font: 15px/1.5 var(--font); -webkit-font-smoothing: antialiased; }
+  button, input, select { font: inherit; color: inherit; }
+  [hidden] { display: none !important; }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+  /* ---- frame ---- */
+  .bar { display: flex; align-items: center; gap: 10px; padding-block: 16px 4px;
+         padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+         max-width: 560px; margin: 0 auto; font-weight: 600; letter-spacing: -.01em; }
+  .logo { width: 24px; height: 24px; border-radius: 7px; background: var(--ink); color: var(--ink-text); display: grid; place-items: center; flex: none; }
+  .logo svg { width: 14px; height: 14px; }
+  .wrap { max-width: 560px; margin: 0 auto; padding-block: 20px 96px;
+          padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .wrap.pane { padding-top: 14px; }
+
+  /* ---- type ---- */
+  .eyebrow { font-size: 12px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; }
+  h1 { font-size: clamp(28px, 7vw, 38px); line-height: 1.08; letter-spacing: -.03em; font-weight: 600; margin: 0 0 12px; text-wrap: balance; }
+  h2 { font-size: 22px; line-height: 1.2; letter-spacing: -.02em; font-weight: 600; margin: 0; text-wrap: balance; }
+  .lede { color: var(--muted); font-size: 16px; margin: 0 0 28px; max-width: 44ch; }
+  .fine { color: var(--faint); font-size: 13px; margin: 18px 0 0; }
+  .error { color: var(--absent); font-size: 14px; margin: 14px 0 0; }
+  .error:empty { display: none; }
+
+  /* ---- buttons ---- */
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 48px; padding: 0 18px;
+         border-radius: 12px; border: 1px solid var(--line); background: var(--surface); font-weight: 500; cursor: pointer;
+         transition: transform .08s ease, border-color .15s ease, background .15s ease, color .15s ease; }
+  .btn:hover { border-color: var(--faint); }
+  .btn:active { transform: scale(.98); }
+  .btn.primary { background: var(--ink); color: var(--ink-text); border-color: var(--ink); }
+  .btn.block { width: 100%; }
+  .btn.quiet { height: 40px; padding: 0 12px; border-color: transparent; background: transparent; color: var(--muted); }
+  .btn.quiet:hover { color: var(--text); background: var(--surface); }
+  .btn:disabled { opacity: .4; cursor: default; transform: none; }
+  .btn svg { width: 16px; height: 16px; flex: none; }
+  .stack { display: grid; gap: 10px; }
+  .linkbtn { background: none; border: 0; padding: 4px 0; cursor: pointer; font-size: 14px; color: var(--muted);
+             text-decoration: underline; text-underline-offset: 4px; text-decoration-color: var(--line); }
+  .linkbtn:hover { color: var(--text); text-decoration-color: currentColor; }
+
+  /* ---- setup ---- */
+  .file { display: flex; gap: 12px; align-items: center; margin-bottom: 18px; min-width: 0; }
+  .file-badge { width: 42px; height: 42px; border-radius: 11px; background: var(--present-soft); color: var(--present);
+                display: grid; place-items: center; flex: none; font: 600 10px/1 var(--mono); letter-spacing: .04em; }
+  .file-name { font-weight: 600; overflow-wrap: anywhere; }
+  .meta { color: var(--muted); font-size: 13px; }
+  .tag-sample { display: inline-block; margin-left: 6px; font-size: 11px; font-weight: 500; letter-spacing: .04em; text-transform: uppercase;
+                color: var(--warn); border: 1px solid currentColor; border-radius: 6px; padding: 0 6px; vertical-align: 2px; }
+  .sheet { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); }
+  .summary { padding: 2px 16px; }
+  .kv { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .kv:last-child { border-bottom: 0; }
+  .kv span { color: var(--muted); flex: none; }
+  .kv b { font-weight: 500; text-align: right; min-width: 0; overflow-wrap: anywhere; }
+  .setup-tools { display: flex; justify-content: flex-end; margin: 8px 0 14px; }
+  .fields { display: grid; gap: 14px; padding: 16px; margin-bottom: 16px; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .field { display: grid; gap: 6px; font-size: 13px; color: var(--muted); min-width: 0; }
+  .select { position: relative; min-width: 0; }
+  .select::after { content: ""; position: absolute; right: 14px; top: 50%; width: 6px; height: 6px; pointer-events: none;
+                   border-right: 1.5px solid var(--muted); border-bottom: 1.5px solid var(--muted); transform: translateY(-75%) rotate(45deg); }
+  select, input { width: 100%; min-width: 0; height: 42px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line);
+                  background: var(--bg); color: var(--text); font-size: 14px; -webkit-appearance: none; appearance: none; }
+  .select select { padding-right: 34px; text-overflow: ellipsis; }
+  select:focus, input:focus { outline: none; border-color: var(--focus); }
+
+  /* ---- roll call ---- */
+  .meter { height: 3px; background: var(--line); border-radius: 99px; overflow: hidden; }
+  #bar { height: 100%; width: 0; background: var(--text); border-radius: 99px; transition: width .25s ease; }
+  .mark-top { display: flex; justify-content: space-between; align-items: center; margin: 12px 0 14px; font-size: 13px; color: var(--muted); }
+  .pos { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  .tally { display: flex; gap: 14px; font-variant-numeric: tabular-nums; }
+  .tally span { display: inline-flex; align-items: center; gap: 6px; }
+  .tally b { color: var(--text); font-weight: 500; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; flex: none; }
+  .dot.p { background: var(--present); } .dot.a { background: var(--absent); } .dot.u { background: var(--faint); }
+  .card { background: var(--surface); border-radius: 20px; box-shadow: var(--shadow); min-height: 200px; padding: 32px 20px 20px;
+          display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; text-align: center; }
+  .sid { font-family: var(--mono); font-size: 14px; color: var(--muted); letter-spacing: .04em; font-variant-numeric: tabular-nums; }
+  .sname { font-size: clamp(24px, 7vw, 32px); font-weight: 600; letter-spacing: -.025em; line-height: 1.15; overflow-wrap: anywhere; text-wrap: balance; }
+  .current { min-height: 26px; margin-top: 8px; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 99px; font-size: 12px; font-weight: 500; }
+  .pill.P { background: var(--present-soft); color: var(--present); }
+  .pill.A { background: var(--absent-soft); color: var(--absent); }
+  .card.enter > * { animation: rise .22s ease both; }
+  @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .choices { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+  .choice { height: 64px; border: 0; border-radius: 16px; font-size: 17px; font-weight: 600; letter-spacing: -.01em; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 8px; transition: transform .08s ease, filter .15s ease; }
+  .choice:active { transform: scale(.97); }
+  .choice:hover { filter: brightness(1.05); }
+  .choice svg { width: 20px; height: 20px; flex: none; }
+  .choice.absent { background: var(--absent-soft); color: var(--absent); }
+  .choice.present { background: var(--present); color: var(--present-text); }
+  kbd { display: none; font: 500 11px/1 var(--mono); opacity: .6; border: 1px solid currentColor; border-radius: 5px; padding: 3px 5px; }
+  @media (hover: hover) and (pointer: fine) { kbd { display: inline-block; } }
+  .nav { display: flex; justify-content: space-between; margin-top: 6px; }
+  .rest { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin-top: 2px; }
+  .rest .yes { background: var(--present); color: var(--present-text); border-color: var(--present); }
+  details { margin-top: 18px; }
+  summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; padding: 10px 2px; font-size: 13px; color: var(--muted); }
+  summary::-webkit-details-marker { display: none; }
+  summary::after { content: "Show"; color: var(--faint); }
+  details[open] summary::after { content: "Hide"; }
+  #roster { list-style: none; margin: 0; padding: 4px; max-height: 340px; overflow: auto; }
+  #roster li { display: grid; grid-template-columns: 22px auto minmax(0, 1fr); gap: 12px; align-items: center; padding: 9px 10px; border-radius: 10px; cursor: pointer; font-size: 14px; }
+  #roster li:hover { background: var(--bg); }
+  #roster li.cur { background: var(--bg); font-weight: 600; }
+  #roster .tag { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 600; color: var(--faint); background: var(--bg); }
+  #roster .P .tag { background: var(--present-soft); color: var(--present); }
+  #roster .A .tag { background: var(--absent-soft); color: var(--absent); }
+  #roster .id { font-family: var(--mono); font-size: 12px; color: var(--muted); font-weight: 400; }
+  #roster .nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* ---- done ---- */
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); gap: 10px; margin: 20px 0 24px; }
+  .stat { padding: 14px 16px; }
+  .stat b { display: block; font-size: 30px; font-weight: 600; letter-spacing: -.03em; line-height: 1.15; font-variant-numeric: tabular-nums; }
+  .stat span { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+  .list-title { font-size: 13px; color: var(--muted); margin: 0 0 8px; }
+  .abs { list-style: none; margin: 0 0 20px; padding: 2px 16px; }
+  .abs li { display: flex; align-items: baseline; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .abs li:last-child { border-bottom: 0; }
+  .abs .id { font-family: var(--mono); font-size: 12px; color: var(--muted); flex: none; }
+  .done-hint { color: var(--muted); font-size: 14px; margin: 0 0 16px; }
+
+  /* ---- status toast ---- */
+  .status { position: fixed; z-index: 20; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+            width: max-content; max-width: calc(100% - 32px); display: flex; align-items: center; gap: 8px;
+            padding: 8px 14px; border-radius: 99px; background: var(--ink); color: var(--ink-text); box-shadow: var(--shadow);
+            font-size: 13px; font-weight: 500; }
+  .status:empty { display: none; }
+  .status::before { content: ""; width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--faint); }
+  .status.ok::before { background: var(--present); }
+  .status.warn::before { background: var(--warn); }
+  .status.err { border-radius: 14px; cursor: pointer; }
+  .status.err::before { background: var(--absent); }
+
+  @media (max-width: 360px) { .field-row { grid-template-columns: 1fr; } }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+  /* ---- studio footer ---- */
+  .studio { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 40px; padding-top: 16px;
+            border-top: 1px solid var(--line); font-size: 12px; color: var(--faint); letter-spacing: .02em; }
+  .studio b { color: var(--muted); font-weight: 600; letter-spacing: .04em; }
+  .studio a { color: var(--faint); text-decoration: none; }
+  .studio a:hover { color: var(--text); text-decoration: underline; text-underline-offset: 3px; }
+
+  .opts { display: grid; gap: 14px; }
+  .opt { padding: 20px; display: grid; gap: 12px; }
+  .opt h2 { font-size: 18px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .opt p { margin: 0; color: var(--muted); font-size: 14px; }
+  .opt ol { margin: 0; padding-left: 20px; color: var(--muted); font-size: 14px; display: grid; gap: 6px; }
+  .opt ol b, .opt p b { color: var(--text); font-weight: 500; }
+  .opt code { font: 13px var(--mono); background: var(--bg); border-radius: 6px; padding: 1px 6px; overflow-wrap: anywhere; }
+  .badge { font-size: 11px; font-weight: 500; letter-spacing: .04em; text-transform: uppercase; color: var(--present); background: var(--present-soft); border-radius: 6px; padding: 2px 8px; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .row .btn { height: 42px; font-size: 14px; }
+  .alt { margin-top: 22px; font-size: 14px; color: var(--muted); }
+  .alt a { color: var(--text); }
+</style>
+</head>
+<body>
+<header class="bar">
+  <a class="logo" href="./" aria-label="Quick Attendance home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></a>
+  Quick Attendance
+</header>
+<main class="wrap">
+  <p class="eyebrow">Excel add-in</p>
+  <h1>Take attendance inside Excel.</h1>
+  <p class="lede">The add-in puts a <b>Take Attendance</b> button on Excel's Home tab. Pick the way that suits you.</p>
+  <p class="error" id="hostErr"></p>
+
+  <div class="opts">
+    <section class="sheet opt">
+      <h2>Everyone at the university <span class="badge">Recommended</span></h2>
+      <p>Your IT team installs it once in Microsoft 365, and the button appears in every faculty member's Excel on Windows, Mac and the web. Teachers install nothing.</p>
+      <ol>
+        <li>Download the add-in file below and send it to IT.</li>
+        <li>IT opens <b>admin.microsoft.com → Settings → Integrated apps → Upload custom apps</b>.</li>
+        <li>App type <b>Office Add-in</b>, upload the file, assign it to faculty, then <b>Finish deployment</b>. It can take up to a day to appear.</li>
+      </ol>
+      <div class="row"><button class="btn primary" data-dl="manifest">Download add-in file</button></div>
+    </section>
+
+    <section class="sheet opt">
+      <h2>Excel on Windows, just me</h2>
+      <ol>
+        <li>Download the installer and double-click it.</li>
+        <li>If Windows says <b>Windows protected your PC</b>, click <b>More info → Run anyway</b>.</li>
+        <li>Close Excel completely, open it again, and look for <b>Take Attendance</b> on the Home tab.</li>
+      </ol>
+      <p>Works with Microsoft 365, Excel 2019 and Excel 2021.</p>
+      <div class="row">
+        <button class="btn primary" data-dl="win">Download Windows installer</button>
+        <button class="btn quiet" data-dl="winx">Uninstaller</button>
+      </div>
+    </section>
+
+    <section class="sheet opt">
+      <h2>Excel on the web</h2>
+      <ol>
+        <li>Download the add-in file.</li>
+        <li>In Excel on the web, open a workbook, then <b>Home → Add-ins → More Add-ins → My Add-ins → Upload My Add-in</b>, and choose the file.</li>
+      </ol>
+      <div class="row"><button class="btn" data-dl="manifest">Download add-in file</button></div>
+    </section>
+
+    <section class="sheet opt">
+      <h2>Excel on Mac</h2>
+      <ol>
+        <li>Download the add-in file.</li>
+        <li>In Finder, choose <b>Go → Go to Folder</b> and open <code>~/Library/Containers/com.microsoft.Excel/Data/Documents/wef</code> (create the <code>wef</code> folder if it is missing).</li>
+        <li>Move the file into that folder, restart Excel, then choose <b>Home → Add-ins → Quick Attendance</b>.</li>
+      </ol>
+      <div class="row"><button class="btn" data-dl="manifest">Download add-in file</button></div>
+    </section>
+  </div>
+
+  <p class="alt">Prefer no install at all? <a href="./">Use the web app</a>. It works with the same Excel files, on computers and phones. <a href="privacy.html">Privacy</a></p>
+
+  <footer class="studio">Made by <b>Forma Studio</b><span aria-hidden="true">·</span><a href="https://studioforma.com" target="_blank" rel="noopener">studioforma.com</a></footer>
+</main>
+
+<script>
+(() => {
+  const ADDIN_ID = '01ba5c31-3b04-4a5f-90dd-a6cfd4d4a436';
+  const TEMPLATE = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<OfficeApp xmlns=\"http://schemas.microsoft.com/office/appforoffice/1.1\"\n           xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n           xmlns:bt=\"http://schemas.microsoft.com/office/officeappbasictypes/1.0\"\n           xmlns:ov=\"http://schemas.microsoft.com/office/taskpaneappversionoverrides\"\n           xsi:type=\"TaskPaneApp\">\n  <Id>01ba5c31-3b04-4a5f-90dd-a6cfd4d4a436</Id>\n  <Version>1.0.0.0</Version>\n  <ProviderName>Quick Attendance</ProviderName>\n  <DefaultLocale>en-US</DefaultLocale>\n  <DisplayName DefaultValue=\"Quick Attendance\"/>\n  <Description DefaultValue=\"Take class attendance one student at a time. Tap Present or Absent and the mark goes straight into the sheet.\"/>\n  <IconUrl DefaultValue=\"BASE_URL/assets/icon-32.png\"/>\n  <HighResolutionIconUrl DefaultValue=\"BASE_URL/assets/icon-64.png\"/>\n  <SupportUrl DefaultValue=\"BASE_URL/excel.html\"/>\n  <Hosts>\n    <Host Name=\"Workbook\"/>\n  </Hosts>\n  <Requirements>\n    <Sets DefaultMinVersion=\"1.1\">\n      <Set Name=\"ExcelApi\" MinVersion=\"1.7\"/>\n    </Sets>\n  </Requirements>\n  <DefaultSettings>\n    <SourceLocation DefaultValue=\"BASE_URL/taskpane.html\"/>\n  </DefaultSettings>\n  <Permissions>ReadWriteDocument</Permissions>\n  <VersionOverrides xmlns=\"http://schemas.microsoft.com/office/taskpaneappversionoverrides\" xsi:type=\"VersionOverridesV1_0\">\n    <Hosts>\n      <Host xsi:type=\"Workbook\">\n        <DesktopFormFactor>\n          <GetStarted>\n            <Title resid=\"GetStarted.Title\"/>\n            <Description resid=\"GetStarted.Description\"/>\n            <LearnMoreUrl resid=\"GetStarted.LearnMoreUrl\"/>\n          </GetStarted>\n          <FunctionFile resid=\"Commands.Url\"/>\n          <ExtensionPoint xsi:type=\"PrimaryCommandSurface\">\n            <OfficeTab id=\"TabHome\">\n              <Group id=\"QuickAttendance.Group\">\n                <Label resid=\"Group.Label\"/>\n                <Icon>\n                  <bt:Image size=\"16\" resid=\"Icon.16\"/>\n                  <bt:Image size=\"32\" resid=\"Icon.32\"/>\n                  <bt:Image size=\"80\" resid=\"Icon.80\"/>\n                </Icon>\n                <Control xsi:type=\"Button\" id=\"QuickAttendance.Open\">\n                  <Label resid=\"Button.Label\"/>\n                  <Supertip>\n                    <Title resid=\"Button.Label\"/>\n                    <Description resid=\"Button.Tooltip\"/>\n                  </Supertip>\n                  <Icon>\n                    <bt:Image size=\"16\" resid=\"Icon.16\"/>\n                    <bt:Image size=\"32\" resid=\"Icon.32\"/>\n                    <bt:Image size=\"80\" resid=\"Icon.80\"/>\n                  </Icon>\n                  <Action xsi:type=\"ShowTaskpane\">\n                    <TaskpaneId>QuickAttendance</TaskpaneId>\n                    <SourceLocation resid=\"Taskpane.Url\"/>\n                  </Action>\n                </Control>\n              </Group>\n            </OfficeTab>\n          </ExtensionPoint>\n        </DesktopFormFactor>\n      </Host>\n    </Hosts>\n    <Resources>\n      <bt:Images>\n        <bt:Image id=\"Icon.16\" DefaultValue=\"BASE_URL/assets/icon-16.png\"/>\n        <bt:Image id=\"Icon.32\" DefaultValue=\"BASE_URL/assets/icon-32.png\"/>\n        <bt:Image id=\"Icon.80\" DefaultValue=\"BASE_URL/assets/icon-80.png\"/>\n      </bt:Images>\n      <bt:Urls>\n        <bt:Url id=\"Commands.Url\" DefaultValue=\"BASE_URL/commands.html\"/>\n        <bt:Url id=\"Taskpane.Url\" DefaultValue=\"BASE_URL/taskpane.html\"/>\n        <bt:Url id=\"GetStarted.LearnMoreUrl\" DefaultValue=\"BASE_URL/excel.html\"/>\n      </bt:Urls>\n      <bt:ShortStrings>\n        <bt:String id=\"GetStarted.Title\" DefaultValue=\"Quick Attendance is ready\"/>\n        <bt:String id=\"Group.Label\" DefaultValue=\"Attendance\"/>\n        <bt:String id=\"Button.Label\" DefaultValue=\"Take Attendance\"/>\n      </bt:ShortStrings>\n      <bt:LongStrings>\n        <bt:String id=\"GetStarted.Description\" DefaultValue=\"Open your attendance sheet, then click Take Attendance on the Home tab.\"/>\n        <bt:String id=\"Button.Tooltip\" DefaultValue=\"Go through the class list one student at a time and mark Present or Absent.\"/>\n      </bt:LongStrings>\n    </Resources>\n  </VersionOverrides>\n</OfficeApp>\n";
+  const REG_KEY = 'HKCU\\SOFTWARE\\Microsoft\\Office\\16.0\\Wef\\Developer';
+
+  // The add-in file needs this site's own address; build it from wherever this page is served.
+  const base = location.href.replace(/[?#].*$/, '').replace(/\/[^/]*$/, '');
+  const hosted = location.protocol === 'https:' || location.hostname === 'localhost';
+  if (!hosted) document.getElementById('hostErr').textContent = 'Open this page from your website (https://…) to download working install files.';
+  const manifest = () => TEMPLATE.replace(/BASE_URL/g, base);
+
+  // A cmd line that writes one line of text to a file. Outside quotes, cmd needs < > & | ^ escaped with ^; % is always doubled.
+  function echoLine(text) {
+    let out = '', quoted = false;
+    for (const ch of text) {
+      if (ch === '"') quoted = !quoted;
+      if (ch === '%') out += '%%';
+      else if (!quoted && '<>&|^'.includes(ch)) out += '^' + ch;
+      else out += ch;
+    }
+    return '>>"%QA_FILE%" echo ' + out;
+  }
+  function windowsInstaller() {
+    const lines = manifest().split('\n').map(l => l.replace(/\s+$/, '')).filter(l => l.trim());
+    return [
+      '@echo off',
+      'title Quick Attendance for Excel',
+      'set "QA_DIR=%LOCALAPPDATA%\\QuickAttendance"',
+      'set "QA_FILE=%QA_DIR%\\manifest.xml"',
+      'if not exist "%QA_DIR%" mkdir "%QA_DIR%"',
+      'if exist "%QA_FILE%" del "%QA_FILE%"',
+      ...lines.map(echoLine),
+      'if not exist "%QA_FILE%" goto fail',
+      `reg add "${REG_KEY}" /v "${ADDIN_ID}" /t REG_SZ /d "%QA_FILE%" /f >nul`,
+      'if errorlevel 1 goto fail',
+      'echo.',
+      'echo   Quick Attendance is installed.',
+      'echo   Close Excel completely, open it again, and click Take Attendance on the Home tab.',
+      'echo.',
+      'pause',
+      'exit /b 0',
+      ':fail',
+      'echo.',
+      'echo   Quick Attendance could not be installed on this computer.',
+      'echo   Ask your IT team to install it for you, or use the web app instead.',
+      'echo.',
+      'pause',
+      'exit /b 1',
+    ].join('\r\n') + '\r\n';
+  }
+  function windowsUninstaller() {
+    return [
+      '@echo off',
+      'title Remove Quick Attendance for Excel',
+      `reg delete "${REG_KEY}" /v "${ADDIN_ID}" /f >nul 2>&1`,
+      'if exist "%LOCALAPPDATA%\\QuickAttendance" rmdir /s /q "%LOCALAPPDATA%\\QuickAttendance"',
+      'echo.',
+      'echo   Quick Attendance has been removed. Restart Excel to finish.',
+      'echo.',
+      'pause',
+    ].join('\r\n') + '\r\n';
+  }
+  function save(name, text, type) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([text], { type }));
+    a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  }
+  const files = {
+    manifest: () => save('quick-attendance-manifest.xml', manifest(), 'application/xml'),
+    win: () => save('Install Quick Attendance for Excel.cmd', windowsInstaller(), 'application/octet-stream'),
+    winx: () => save('Remove Quick Attendance for Excel.cmd', windowsUninstaller(), 'application/octet-stream'),
+  };
+  document.querySelectorAll('[data-dl]').forEach(b => b.onclick = () => {
+    if (!hosted) return;
+    files[b.dataset.dl]();
+  });
+  window.__qa = { manifest, windowsInstaller, windowsUninstaller };   // used by the build check
+})();
+</script>
+</body>
+</html>

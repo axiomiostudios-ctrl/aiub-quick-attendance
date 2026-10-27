@@ -5,132 +5,269 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Quick Attendance</title>
 <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400..700&family=Geist+Mono:wght@400..600&display=swap">
 <style>
+  /* Layout: one quiet centred column; the student card and two thumb-sized choices carry the screen. */
   :root {
-    --bg: #f6f7f9; --surface: #ffffff; --text: #1b1f24; --muted: #5f6b7a; --line: #dde2e8;
-    --accent: #2457c5; --accent-text: #ffffff;
-    --present: #1f8a4c; --present-soft: #e3f4ea; --absent: #c63a32; --absent-soft: #fbe7e5;
-    --warn: #9a6400; --warn-soft: #fff3d6;
+    --bg: #f5f6f7; --surface: #ffffff; --text: #101317; --muted: #687079; --faint: #9aa1a9; --line: #e6e8eb;
+    --ink: #121519; --ink-text: #ffffff;
+    --present: #0f7a55; --present-text: #ffffff; --present-soft: #e6f4ee;
+    --absent: #c23a30; --absent-soft: #fbecea;
+    --warn: #a36b00; --focus: #3a6ee0;
+    --shadow: 0 1px 2px rgba(16, 19, 23, .04), 0 8px 24px rgba(16, 19, 23, .05);
+    --radius: 16px;
+    --font: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --bg: #121417; --surface: #1c1f24; --text: #e9edf1; --muted: #9aa5b1; --line: #2e333a;
-      --accent: #6d97f0; --accent-text: #0d1117;
-      --present: #4cc483; --present-soft: #173326; --absent: #f0726a; --absent-soft: #3a1c1a;
-      --warn: #f0c060; --warn-soft: #3a2e12;
+      --bg: #0d0f12; --surface: #16191d; --text: #eceef1; --muted: #939aa4; --faint: #646b74; --line: #262a30;
+      --ink: #eef0f2; --ink-text: #0d0f12;
+      --present: #33c283; --present-text: #06150e; --present-soft: #13281e;
+      --absent: #ff7d72; --absent-soft: #2c1716;
+      --warn: #f0c060; --focus: #7ca3ff;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 28px rgba(0, 0, 0, .3);
+      color-scheme: dark;
     }
   }
+  :root[data-theme="dark"] {
+    --bg: #0d0f12; --surface: #16191d; --text: #eceef1; --muted: #939aa4; --faint: #646b74; --line: #262a30;
+    --ink: #eef0f2; --ink-text: #0d0f12;
+    --present: #33c283; --present-text: #06150e; --present-soft: #13281e;
+    --absent: #ff7d72; --absent-soft: #2c1716;
+    --warn: #f0c060; --focus: #7ca3ff;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 28px rgba(0, 0, 0, .3);
+    color-scheme: dark;
+  }
+
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-  main { padding: 12px 12px 32px; max-width: 520px; margin: 0 auto; }
-  .status { font-size: 13px; padding: 6px 10px; border-radius: 8px; margin-bottom: 10px; }
-  .status:empty { display: none; }
-  .status.ok { background: var(--present-soft); color: var(--present); }
-  .status.warn { background: var(--warn-soft); color: var(--warn); }
-  .status.err { background: var(--absent-soft); color: var(--absent); cursor: pointer; }
-  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
-  h2 { font-size: 17px; margin: 0 0 4px; word-break: break-word; }
-  .hint { color: var(--muted); font-size: 13px; }
-  button { font: inherit; cursor: pointer; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--text); padding: 8px 12px; }
-  button.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 600; }
-  button.wide { width: 100%; padding: 12px; font-size: 16px; }
-  button.link { border: none; background: none; color: var(--accent); padding: 0; font-size: 13px; }
-  button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
-  button:disabled { opacity: .5; cursor: default; }
-  .fields { display: grid; gap: 10px; margin: 14px 0 6px; }
-  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  label { display: flex; flex-direction: column; gap: 3px; font-size: 13px; color: var(--muted); }
-  select, input { font: inherit; font-size: 14px; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; min-width: 0; width: 100%; }
-  .progress { height: 6px; background: var(--line); border-radius: 999px; overflow: hidden; }
-  #bar { height: 100%; width: 0; background: var(--accent); transition: width .2s; }
-  .counts { display: flex; justify-content: space-between; color: var(--muted); font-size: 13px; margin: 6px 0 10px; }
-  .card { background: var(--surface); border: 2px solid var(--line); border-radius: 14px; padding: 22px 12px; text-align: center; transition: border-color .15s, background .15s; }
-  .card.is-P { border-color: var(--present); } .card.is-A { border-color: var(--absent); }
-  .card.flash-P { background: var(--present-soft); } .card.flash-A { background: var(--absent-soft); }
-  .sid { font-size: 16px; color: var(--muted); font-variant-numeric: tabular-nums; letter-spacing: .5px; }
-  .sname { font-size: 24px; font-weight: 700; margin-top: 4px; word-break: break-word; }
-  .current { margin-top: 8px; font-size: 13px; min-height: 19px; color: var(--muted); }
-  .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
-  .actions button { padding: 18px 6px; font-size: 18px; font-weight: 700; border: none; border-radius: 12px; color: #fff; }
-  .actions .absent { background: var(--absent); } .actions .present { background: var(--present); }
-  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .actions button { color: #0d1117; } }
-  kbd { font: 11px ui-monospace, monospace; opacity: .75; border: 1px solid currentColor; border-radius: 4px; padding: 0 3px; margin-left: 6px; vertical-align: middle; }
-  .sub { display: flex; justify-content: space-between; gap: 6px; margin-top: 8px; }
-  .sub button { font-size: 13px; padding: 6px 10px; background: transparent; }
-  .rest { width: 100%; margin-top: 8px; font-size: 13px; background: transparent; }
-  details { margin-top: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
-  summary { cursor: pointer; color: var(--muted); font-size: 13px; }
-  #roster { list-style: none; padding: 0; margin: 8px 0 0; max-height: 300px; overflow: auto; }
-  #roster li { display: flex; gap: 8px; align-items: center; padding: 5px 6px; border-radius: 6px; cursor: pointer; font-size: 13px; }
-  #roster li:hover, #roster li.cur { background: var(--bg); }
-  #roster .tag { width: 22px; text-align: center; font-weight: 700; font-size: 12px; border-radius: 5px; flex: none; }
+  html, body { background: var(--bg); }
+  body { margin: 0; color: var(--text); font: 15px/1.5 var(--font); -webkit-font-smoothing: antialiased; }
+  button, input, select { font: inherit; color: inherit; }
+  [hidden] { display: none !important; }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+  /* ---- frame ---- */
+  .bar { display: flex; align-items: center; gap: 10px; padding-block: 16px 4px;
+         padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+         max-width: 560px; margin: 0 auto; font-weight: 600; letter-spacing: -.01em; }
+  .logo { width: 24px; height: 24px; border-radius: 7px; background: var(--ink); color: var(--ink-text); display: grid; place-items: center; flex: none; }
+  .logo svg { width: 14px; height: 14px; }
+  .wrap { max-width: 560px; margin: 0 auto; padding-block: 20px 96px;
+          padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .wrap.pane { padding-top: 14px; }
+
+  /* ---- type ---- */
+  .eyebrow { font-size: 12px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; }
+  h1 { font-size: clamp(28px, 7vw, 38px); line-height: 1.08; letter-spacing: -.03em; font-weight: 600; margin: 0 0 12px; text-wrap: balance; }
+  h2 { font-size: 22px; line-height: 1.2; letter-spacing: -.02em; font-weight: 600; margin: 0; text-wrap: balance; }
+  .lede { color: var(--muted); font-size: 16px; margin: 0 0 28px; max-width: 44ch; }
+  .fine { color: var(--faint); font-size: 13px; margin: 18px 0 0; }
+  .error { color: var(--absent); font-size: 14px; margin: 14px 0 0; }
+  .error:empty { display: none; }
+
+  /* ---- buttons ---- */
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 48px; padding: 0 18px;
+         border-radius: 12px; border: 1px solid var(--line); background: var(--surface); font-weight: 500; cursor: pointer;
+         transition: transform .08s ease, border-color .15s ease, background .15s ease, color .15s ease; }
+  .btn:hover { border-color: var(--faint); }
+  .btn:active { transform: scale(.98); }
+  .btn.primary { background: var(--ink); color: var(--ink-text); border-color: var(--ink); }
+  .btn.block { width: 100%; }
+  .btn.quiet { height: 40px; padding: 0 12px; border-color: transparent; background: transparent; color: var(--muted); }
+  .btn.quiet:hover { color: var(--text); background: var(--surface); }
+  .btn:disabled { opacity: .4; cursor: default; transform: none; }
+  .btn svg { width: 16px; height: 16px; flex: none; }
+  .stack { display: grid; gap: 10px; }
+  .linkbtn { background: none; border: 0; padding: 4px 0; cursor: pointer; font-size: 14px; color: var(--muted);
+             text-decoration: underline; text-underline-offset: 4px; text-decoration-color: var(--line); }
+  .linkbtn:hover { color: var(--text); text-decoration-color: currentColor; }
+
+  /* ---- setup ---- */
+  .file { display: flex; gap: 12px; align-items: center; margin-bottom: 18px; min-width: 0; }
+  .file-badge { width: 42px; height: 42px; border-radius: 11px; background: var(--present-soft); color: var(--present);
+                display: grid; place-items: center; flex: none; font: 600 10px/1 var(--mono); letter-spacing: .04em; }
+  .file-name { font-weight: 600; overflow-wrap: anywhere; }
+  .meta { color: var(--muted); font-size: 13px; }
+  .tag-sample { display: inline-block; margin-left: 6px; font-size: 11px; font-weight: 500; letter-spacing: .04em; text-transform: uppercase;
+                color: var(--warn); border: 1px solid currentColor; border-radius: 6px; padding: 0 6px; vertical-align: 2px; }
+  .sheet { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); }
+  .summary { padding: 2px 16px; }
+  .kv { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .kv:last-child { border-bottom: 0; }
+  .kv span { color: var(--muted); flex: none; }
+  .kv b { font-weight: 500; text-align: right; min-width: 0; overflow-wrap: anywhere; }
+  .setup-tools { display: flex; justify-content: flex-end; margin: 8px 0 14px; }
+  .fields { display: grid; gap: 14px; padding: 16px; margin-bottom: 16px; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .field { display: grid; gap: 6px; font-size: 13px; color: var(--muted); min-width: 0; }
+  .select { position: relative; min-width: 0; }
+  .select::after { content: ""; position: absolute; right: 14px; top: 50%; width: 6px; height: 6px; pointer-events: none;
+                   border-right: 1.5px solid var(--muted); border-bottom: 1.5px solid var(--muted); transform: translateY(-75%) rotate(45deg); }
+  select, input { width: 100%; min-width: 0; height: 42px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line);
+                  background: var(--bg); color: var(--text); font-size: 14px; -webkit-appearance: none; appearance: none; }
+  .select select { padding-right: 34px; text-overflow: ellipsis; }
+  select:focus, input:focus { outline: none; border-color: var(--focus); }
+
+  /* ---- roll call ---- */
+  .meter { height: 3px; background: var(--line); border-radius: 99px; overflow: hidden; }
+  #bar { height: 100%; width: 0; background: var(--text); border-radius: 99px; transition: width .25s ease; }
+  .mark-top { display: flex; justify-content: space-between; align-items: center; margin: 12px 0 14px; font-size: 13px; color: var(--muted); }
+  .pos { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  .tally { display: flex; gap: 14px; font-variant-numeric: tabular-nums; }
+  .tally span { display: inline-flex; align-items: center; gap: 6px; }
+  .tally b { color: var(--text); font-weight: 500; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; flex: none; }
+  .dot.p { background: var(--present); } .dot.a { background: var(--absent); } .dot.u { background: var(--faint); }
+  .card { background: var(--surface); border-radius: 20px; box-shadow: var(--shadow); min-height: 200px; padding: 32px 20px 20px;
+          display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; text-align: center; }
+  .sid { font-family: var(--mono); font-size: 14px; color: var(--muted); letter-spacing: .04em; font-variant-numeric: tabular-nums; }
+  .sname { font-size: clamp(24px, 7vw, 32px); font-weight: 600; letter-spacing: -.025em; line-height: 1.15; overflow-wrap: anywhere; text-wrap: balance; }
+  .current { min-height: 26px; margin-top: 8px; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 99px; font-size: 12px; font-weight: 500; }
+  .pill.P { background: var(--present-soft); color: var(--present); }
+  .pill.A { background: var(--absent-soft); color: var(--absent); }
+  .card.enter > * { animation: rise .22s ease both; }
+  @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .choices { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+  .choice { height: 64px; border: 0; border-radius: 16px; font-size: 17px; font-weight: 600; letter-spacing: -.01em; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 8px; transition: transform .08s ease, filter .15s ease; }
+  .choice:active { transform: scale(.97); }
+  .choice:hover { filter: brightness(1.05); }
+  .choice svg { width: 20px; height: 20px; flex: none; }
+  .choice.absent { background: var(--absent-soft); color: var(--absent); }
+  .choice.present { background: var(--present); color: var(--present-text); }
+  kbd { display: none; font: 500 11px/1 var(--mono); opacity: .6; border: 1px solid currentColor; border-radius: 5px; padding: 3px 5px; }
+  @media (hover: hover) and (pointer: fine) { kbd { display: inline-block; } }
+  .nav { display: flex; justify-content: space-between; margin-top: 6px; }
+  .rest { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin-top: 2px; }
+  .rest .yes { background: var(--present); color: var(--present-text); border-color: var(--present); }
+  details { margin-top: 18px; }
+  summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; padding: 10px 2px; font-size: 13px; color: var(--muted); }
+  summary::-webkit-details-marker { display: none; }
+  summary::after { content: "Show"; color: var(--faint); }
+  details[open] summary::after { content: "Hide"; }
+  #roster { list-style: none; margin: 0; padding: 4px; max-height: 340px; overflow: auto; }
+  #roster li { display: grid; grid-template-columns: 22px auto minmax(0, 1fr); gap: 12px; align-items: center; padding: 9px 10px; border-radius: 10px; cursor: pointer; font-size: 14px; }
+  #roster li:hover { background: var(--bg); }
+  #roster li.cur { background: var(--bg); font-weight: 600; }
+  #roster .tag { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 600; color: var(--faint); background: var(--bg); }
   #roster .P .tag { background: var(--present-soft); color: var(--present); }
   #roster .A .tag { background: var(--absent-soft); color: var(--absent); }
-  #roster .id { color: var(--muted); font-variant-numeric: tabular-nums; flex: none; }
-  #roster .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .stack { display: grid; gap: 8px; margin-top: 14px; }
-  .big-num b { font-size: 22px; }
-  ul.abs { padding-left: 18px; font-size: 14px; } ul.abs li { margin: 2px 0; }
+  #roster .id { font-family: var(--mono); font-size: 12px; color: var(--muted); font-weight: 400; }
+  #roster .nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* ---- done ---- */
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); gap: 10px; margin: 20px 0 24px; }
+  .stat { padding: 14px 16px; }
+  .stat b { display: block; font-size: 30px; font-weight: 600; letter-spacing: -.03em; line-height: 1.15; font-variant-numeric: tabular-nums; }
+  .stat span { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+  .list-title { font-size: 13px; color: var(--muted); margin: 0 0 8px; }
+  .abs { list-style: none; margin: 0 0 20px; padding: 2px 16px; }
+  .abs li { display: flex; align-items: baseline; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .abs li:last-child { border-bottom: 0; }
+  .abs .id { font-family: var(--mono); font-size: 12px; color: var(--muted); flex: none; }
+  .done-hint { color: var(--muted); font-size: 14px; margin: 0 0 16px; }
+
+  /* ---- status toast ---- */
+  .status { position: fixed; z-index: 20; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+            width: max-content; max-width: calc(100% - 32px); display: flex; align-items: center; gap: 8px;
+            padding: 8px 14px; border-radius: 99px; background: var(--ink); color: var(--ink-text); box-shadow: var(--shadow);
+            font-size: 13px; font-weight: 500; }
+  .status:empty { display: none; }
+  .status::before { content: ""; width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--faint); }
+  .status.ok::before { background: var(--present); }
+  .status.warn::before { background: var(--warn); }
+  .status.err { border-radius: 14px; cursor: pointer; }
+  .status.err::before { background: var(--absent); }
+
+  @media (max-width: 360px) { .field-row { grid-template-columns: 1fr; } }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+  /* ---- studio footer ---- */
+  .studio { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 40px; padding-top: 16px;
+            border-top: 1px solid var(--line); font-size: 12px; color: var(--faint); letter-spacing: .02em; }
+  .studio b { color: var(--muted); font-weight: 600; letter-spacing: .04em; }
+  .studio a { color: var(--faint); text-decoration: none; }
+  .studio a:hover { color: var(--text); text-decoration: underline; text-underline-offset: 3px; }
+
 </style>
 </head>
 <body>
-<main>
+<main class="wrap pane">
   <div id="status" class="status" role="status"></div>
 
-  <section id="stepLoading" class="panel"><p class="hint">Reading your sheet…</p></section>
+  <section id="stepLoading"><p class="meta">Reading your sheet…</p></section>
 
-  <section id="stepSetup" class="panel" hidden>
-    <h2 id="sheetTitle"></h2>
-    <button id="reloadBtn" class="link">Use the sheet I'm on now ↻</button>
-    <div class="fields">
-      <div class="two">
-        <label>Header row <input type="number" id="headerRow" min="1"></label>
-        <label>Marks as
-          <select id="markStyle">
+  <section id="stepSetup" hidden>
+    <div class="file">
+      <div class="file-badge">TAB</div>
+      <div>
+        <div class="file-name" id="sheetTitle"></div>
+        <div class="meta" id="setupInfo"></div>
+      </div>
+    </div>
+    <div class="sheet summary" id="summary"></div>
+    <div class="setup-tools">
+      <button id="reloadBtn" class="linkbtn">Use the sheet I'm on</button>
+      <span style="flex:1"></span>
+      <button id="adjustBtn" class="linkbtn">Adjust</button>
+    </div>
+    <div class="sheet fields" id="fields" hidden>
+      <div class="field-row">
+        <label class="field">Header row <input type="number" id="headerRow" min="1"></label>
+        <label class="field">Marks as
+          <span class="select"><select id="markStyle">
             <option value="P|A">P / A</option>
             <option value="Present|Absent">Present / Absent</option>
             <option value="1|0">1 / 0</option>
-          </select>
+          </select></span>
         </label>
       </div>
-      <label>Student ID column <select id="idCol"></select></label>
-      <label>Name column <select id="nameCol"></select></label>
-      <label>Today's attendance column <select id="attCol"></select></label>
-      <label id="newHeaderWrap">Header for the new column <input id="newHeader"></label>
+      <label class="field">Student ID column <span class="select"><select id="idCol"></select></span></label>
+      <label class="field">Name column <span class="select"><select id="nameCol"></select></span></label>
+      <label class="field">Today's attendance column <span class="select"><select id="attCol"></select></span></label>
+      <label class="field" id="newHeaderWrap">Header for the new column <input id="newHeader"></label>
     </div>
-    <p id="setupInfo" class="hint"></p>
-    <button id="startBtn" class="primary wide">Start roll call</button>
+    <button id="startBtn" class="btn primary block">Start roll call</button>
   </section>
 
   <section id="stepMark" hidden>
-    <div class="progress"><div id="bar"></div></div>
-    <div class="counts"><span id="pos"></span><span><b id="cP">0</b> present · <b id="cA">0</b> absent</span></div>
+    <div class="meter"><div id="bar"></div></div>
+    <div class="mark-top">
+      <span class="pos" id="pos"></span>
+      <span class="tally"><span><i class="dot p"></i><b id="cP">0</b></span><span><i class="dot a"></i><b id="cA">0</b></span></span>
+    </div>
     <div class="card" id="card">
       <div class="sid" id="sid"></div>
       <div class="sname" id="sname"></div>
       <div class="current" id="curMark"></div>
     </div>
-    <div class="actions">
-      <button id="absentBtn" class="absent">Absent<kbd>A</kbd></button>
-      <button id="presentBtn" class="present">Present<kbd>P</kbd></button>
+    <div class="choices">
+      <button id="absentBtn" class="choice absent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M7 7l10 10M17 7L7 17"/></svg>Absent<kbd>A</kbd></button>
+      <button id="presentBtn" class="choice present"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Present<kbd>P</kbd></button>
     </div>
-    <div class="sub">
-      <button id="backBtn">← Back</button>
-      <button id="skipBtn">Skip →</button>
+    <div class="nav">
+      <button id="backBtn" class="btn quiet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>Back</button>
+      <button id="skipBtn" class="btn quiet">Skip<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
     </div>
-    <button id="restPresentBtn" class="rest">Mark everyone left as Present</button>
-    <details><summary>Full list (tap a name to change it)</summary><ol id="roster"></ol></details>
+    <div class="rest" id="restBox"></div>
+    <details><summary>Class list</summary><ol id="roster" class="sheet"></ol></details>
   </section>
 
-  <section id="stepDone" class="panel" hidden>
+  <section id="stepDone" hidden>
+    <p class="eyebrow">Done</p>
     <h2>Attendance complete</h2>
-    <p class="big-num" id="doneSummary"></p>
+    <div class="stats" id="doneSummary"></div>
     <div id="absentList"></div>
     <div class="stack">
-      <button id="reviewBtn">Review / change marks</button>
-      <button id="againBtn">Take another attendance</button>
+      <button id="reviewBtn" class="btn block">Review or change marks</button>
+      <button id="againBtn" class="btn quiet block">Take another attendance</button>
     </div>
   </section>
+  <footer class="studio">Made by <b>Forma Studio</b><span aria-hidden="true">·</span><a href="https://studioforma.com" target="_blank" rel="noopener">studioforma.com</a></footer>
 </main>
 <script>// Excel add-in backend for the Quick Attendance panel (Office.js).
 window.QA_BACKEND = {
@@ -176,7 +313,63 @@ window.QA_BACKEND = {
   }),
 };
 </script>
-<script>// Shared roll-call panel. Talks to the spreadsheet only through `QA_BACKEND`:
+<script>// Shared view helpers for every Quick Attendance build (standalone page, phone page, Excel and Sheets panels).
+window.QAUI = (() => {
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+  const optText = sel => sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].text.replace(': ', ' · ') : '—';
+
+  return {
+    optText,
+
+    // Key/value rows describing what the roll call will do.
+    summary(box, rows) {
+      box.innerHTML = '';
+      rows.forEach(([k, v]) => { const row = el('div', 'kv'); row.append(el('span', '', k), el('b', '', v)); box.append(row); });
+    },
+
+    // Student card: state pill and a small entrance motion for each new student.
+    card(card, curMark, kind) {
+      curMark.innerHTML = '';
+      if (kind) curMark.append(el('span', 'pill ' + kind, kind === 'P' ? 'Marked present' : 'Marked absent'));
+      card.classList.remove('enter'); void card.offsetWidth; card.classList.add('enter');
+    },
+
+    // "Mark everyone left as Present", with the confirmation built into the page (pop-up dialogs are blocked in add-ins and the artifact viewer).
+    rest(box, count, onYes) {
+      const reset = () => {
+        box.innerHTML = '';
+        const b = el('button', 'btn quiet', 'Mark everyone left as Present');
+        b.onclick = () => {
+          const n = count();
+          if (!n) return onYes();
+          box.innerHTML = '';
+          const yes = el('button', 'btn yes', `Mark ${n} as present`);
+          const no = el('button', 'btn', 'Cancel');
+          yes.onclick = onYes; no.onclick = reset;
+          box.append(yes, no);
+        };
+        box.append(b);
+      };
+      reset();
+    },
+
+    // Done screen: stat tiles and the list of absent students.
+    done(statsBox, listBox, p, abs, unmarked) {
+      statsBox.innerHTML = '';
+      const tile = (n, label, dot) => { const t = el('div', 'sheet stat'); const s = el('span'); s.append(el('i', 'dot ' + dot), label); t.append(el('b', '', String(n)), s); return t; };
+      statsBox.append(tile(p, 'Present', 'p'), tile(abs.length, 'Absent', 'a'));
+      if (unmarked) statsBox.append(tile(unmarked, 'Not marked', 'u'));
+      listBox.innerHTML = '';
+      if (!abs.length) return;
+      listBox.append(el('p', 'list-title', 'Absent today'));
+      const ul = el('ul', 'sheet abs');
+      abs.forEach(s => { const li = el('li'); li.append(el('span', 'id', s.id), el('span', '', s.name)); ul.append(li); });
+      listBox.append(ul);
+    },
+  };
+})();
+
+// Shared roll-call panel. Talks to the spreadsheet only through `QA_BACKEND`:
 //   ready()                                   -> Promise
 //   load()                                    -> Promise<{ sheet, grid: string[][] }>  (display text, grid[0][0] = A1)
 //   addColumn(sheet, hdrRow, col, header, lastRow) -> Promise
@@ -198,7 +391,12 @@ window.QA_BACKEND = {
   const txt = (r, c) => String(((grid[r - 1] || [])[c - 1]) ?? '').trim();
   const kindOf = t => /^(p|present|1|yes|y)$/i.test(t) ? 'P' : /^(a|absent|0|no|n)$/i.test(t) ? 'A' : '';
   const show = id => ['stepLoading', 'stepSetup', 'stepMark', 'stepDone'].forEach(s => $(s).hidden = s !== id);
-  const setStatus = (text, cls) => { const el = $('status'); el.textContent = text; el.className = 'status ' + (cls || ''); };
+  let statusTimer = null;
+  const setStatus = (text, cls) => {
+    const el = $('status'); el.textContent = text; el.className = 'status ' + (cls || '');
+    clearTimeout(statusTimer);
+    if (cls === 'ok') statusTimer = setTimeout(() => { el.textContent = ''; }, 1800);
+  };
   const errText = e => (e && (e.message || e.toString())) || 'Unknown error';
   function todayLabel() { const d = new Date(); return `${d.getDate()} ${MON[d.getMonth()]} ${d.getFullYear()}`; }
 
@@ -221,7 +419,7 @@ window.QA_BACKEND = {
     try {
       ({ sheet, grid } = await B.load());
     } catch (e) { setStatus('Could not read the sheet: ' + errText(e), 'err'); return; }
-    $('sheetTitle').textContent = 'Sheet: ' + sheet;
+    $('sheetTitle').textContent = sheet;
     const d = detectHeader();
     $('headerRow').value = d.r;
     fillColumns(d.id, d.nm);
@@ -250,7 +448,7 @@ window.QA_BACKEND = {
     for (let c = 1; c <= Math.max(width, 2); c++) { $('idCol').add(opt(c)); $('nameCol').add(opt(c)); }
     $('idCol').value = String(idDefault); $('nameCol').value = String(nmDefault);
 
-    $('attCol').add(new Option(`➕ Add a new column (${colLetter(newColIdx)})`, 'new'));
+    $('attCol').add(new Option(`New column (${colLetter(newColIdx)})`, 'new'));
     let match = '';
     for (let c = 1; c <= width; c++) {
       if (c === +idDefault || c === +nmDefault) continue;
@@ -275,10 +473,24 @@ window.QA_BACKEND = {
     $('newHeaderWrap').hidden = $('attCol').value !== 'new';
     students = buildStudents();
     $('startBtn').disabled = !students.length;
-    if (!students.length) { $('setupInfo').textContent = 'No students found under the header row. Check the header row and the ID column.'; return; }
-    const col = $('attCol').value === 'new' ? newColIdx : +$('attCol').value;
-    $('setupInfo').textContent = `Found ${students.length} students (rows ${students[0].r}–${students[students.length - 1].r}). Marks go in column ${colLetter(col)}.`;
+    $('setupInfo').textContent = students.length ? `${students.length} students found` : 'No students found. Adjust the header row or ID column.';
+    if (!students.length) $('fields').hidden = false;
+    renderSummary();
   }
+  function renderSummary() {
+    const att = $('attCol').value === 'new'
+      ? `New column ${colLetter(newColIdx)} · ${$('newHeader').value.trim() || todayLabel()}` : QAUI.optText($('attCol'));
+    QAUI.summary($('summary'), [
+      ['Student ID', QAUI.optText($('idCol'))],
+      ['Name', QAUI.optText($('nameCol'))],
+      ["Today's marks", att],
+      ['Rows', students.length ? `${students[0].r}–${students[students.length - 1].r}` : '—'],
+      ['Marks as', $('markStyle').options[$('markStyle').selectedIndex].text],
+    ]);
+  }
+  $('adjustBtn').onclick = () => { $('fields').hidden = !$('fields').hidden; $('adjustBtn').textContent = $('fields').hidden ? 'Adjust' : 'Done'; };
+  $('markStyle').onchange = renderSummary;
+  $('newHeader').oninput = renderSummary;
   $('reloadBtn').onclick = loadSheet;
   $('headerRow').onchange = () => { const d = detectHeader(); fillColumns(+$('idCol').value || d.id, +$('nameCol').value || d.nm); };
   $('idCol').onchange = $('nameCol').onchange = () => fillColumns(+$('idCol').value, +$('nameCol').value);
@@ -315,13 +527,13 @@ window.QA_BACKEND = {
   function render() {
     const s = students[idx], k = marks[idx];
     $('sid').textContent = s.id; $('sname').textContent = s.name || '(no name)';
-    $('card').className = 'card' + (k ? ' is-' + k : '');
-    $('curMark').textContent = k ? `Currently marked ${k === 'P' ? 'Present' : 'Absent'}` : '';
-    $('pos').textContent = `${idx + 1} of ${students.length}`;
+    QAUI.card($('card'), $('curMark'), k);
+    $('pos').textContent = `${idx + 1} / ${students.length}`;
     const p = marks.filter(m => m === 'P').length, a = marks.filter(m => m === 'A').length;
     $('cP').textContent = String(p); $('cA').textContent = String(a);
     $('bar').style.width = ((p + a) / students.length * 100) + '%';
     $('backBtn').disabled = idx === 0;
+    QAUI.rest($('restBox'), () => marks.slice(idx).filter(m => !m).length, markRestPresent);
     const ol = $('roster'); ol.innerHTML = '';
     students.forEach((x, i) => {
       const li = document.createElement('li');
@@ -336,8 +548,6 @@ window.QA_BACKEND = {
   function mark(kind) {
     marks[idx] = kind;
     const cell = cellFor(idx, kind);
-    const card = $('card'); card.classList.add('flash-' + kind);
-    setTimeout(() => card.classList.remove('flash-' + kind), 180);
     if (idx < students.length - 1) { idx++; render(); queue([cell]); } else { queue([cell]); finish(); }
   }
   function next() { if (idx < students.length - 1) { idx++; render(); queue([]); } else finish(); }
@@ -345,15 +555,14 @@ window.QA_BACKEND = {
   $('absentBtn').onclick = () => mark('A');
   $('skipBtn').onclick = next;
   $('backBtn').onclick = () => { if (idx > 0) { idx--; render(); queue([]); } };
-  $('restPresentBtn').onclick = () => {
+  function markRestPresent() {
     const rest = [];
     for (let i = idx; i < students.length; i++) if (!marks[i]) rest.push(i);
     if (!rest.length) return finish();
-    if (!confirm(`Mark ${rest.length} remaining unmarked student(s) as Present?`)) return;
     rest.forEach(i => marks[i] = 'P');
     queue(rest.map(i => cellFor(i, 'P')));
     finish();
-  };
+  }
 
   document.addEventListener('keydown', e => {
     if ($('stepMark').hidden || e.target.matches('input, select, textarea') || e.ctrlKey || e.metaKey || e.altKey) return;
@@ -369,14 +578,7 @@ window.QA_BACKEND = {
   function finish() {
     const p = marks.filter(m => m === 'P').length, un = marks.filter(m => !m).length;
     const abs = students.filter((_, i) => marks[i] === 'A');
-    $('doneSummary').innerHTML = `<b>${p}</b> present · <b>${abs.length}</b> absent` + (un ? ` · <b>${un}</b> not marked` : '');
-    const box = $('absentList'); box.innerHTML = '';
-    if (abs.length) {
-      box.insertAdjacentHTML('beforeend', '<p class="hint">Absent:</p>');
-      const ul = document.createElement('ul'); ul.className = 'abs';
-      abs.forEach(s => { const li = document.createElement('li'); li.textContent = `${s.id}  ${s.name}`; ul.appendChild(li); });
-      box.appendChild(ul);
-    }
+    QAUI.done($('doneSummary'), $('absentList'), p, abs, un);
     show('stepDone');
   }
   $('reviewBtn').onclick = () => { idx = 0; show('stepMark'); render(); queue([]); };
@@ -405,7 +607,7 @@ window.QA_BACKEND = {
         setStatus(`Not saved: ${errText(e)} If you're typing in a cell, press Enter or Esc first. Click here to retry.`, 'err');
         return;
       }
-      if (cells.length && !outbox.length) setStatus('Saved in the sheet ✓', 'ok');
+      if (cells.length && !outbox.length) setStatus('Saved to sheet', 'ok');
     }
     flushing = false;
   }
