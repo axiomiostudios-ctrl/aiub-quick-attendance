@@ -201,6 +201,14 @@
   .studio a { color: var(--faint); text-decoration: none; }
   .studio a:hover { color: var(--text); text-decoration: underline; text-underline-offset: 3px; }
 
+  /* ---- link card (web app home → Add to Excel) ---- */
+  .link-card { display: flex; align-items: center; gap: 12px; margin-top: 24px; padding: 14px 16px; color: var(--text); text-decoration: none;
+               border: 1px solid transparent; transition: border-color .15s ease; }
+  .link-card:hover { border-color: var(--line); }
+  .link-card-text { display: grid; flex: 1; min-width: 0; }
+  .link-card-text b { font-weight: 600; }
+  .link-card svg { width: 18px; height: 18px; color: var(--muted); flex: none; }
+
 </style>
 
 <header class="bar">
@@ -223,6 +231,11 @@
     <p class="error" id="openErr"></p>
     <p class="fine" id="modeHint"></p>
     <p class="fine" id="iosHint" hidden>To keep it on your iPhone or iPad, tap Share, then Add to Home Screen.</p>
+    <a id="excelCard" class="sheet link-card" href="excel.html" hidden>
+      <span class="file-badge">XLSX</span>
+      <span class="link-card-text"><b>Add to Excel</b><span class="meta">Get a Take Attendance button inside Excel</span></span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+    </a>
   </section>
 
   <section id="stepSetup" hidden>
@@ -433,6 +446,7 @@ window.QAUI = (() => {
 
   // ---------- install as an app (hosted website only) ----------
   if (PWA) {
+    $('excelCard').hidden = false;
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
     let installEvt = null;
     window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; $('installBtn').hidden = false; });

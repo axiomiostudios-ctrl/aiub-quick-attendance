@@ -192,6 +192,14 @@
   .studio a { color: var(--faint); text-decoration: none; }
   .studio a:hover { color: var(--text); text-decoration: underline; text-underline-offset: 3px; }
 
+  /* ---- link card (web app home → Add to Excel) ---- */
+  .link-card { display: flex; align-items: center; gap: 12px; margin-top: 24px; padding: 14px 16px; color: var(--text); text-decoration: none;
+               border: 1px solid transparent; transition: border-color .15s ease; }
+  .link-card:hover { border-color: var(--line); }
+  .link-card-text { display: grid; flex: 1; min-width: 0; }
+  .link-card-text b { font-weight: 600; }
+  .link-card svg { width: 18px; height: 18px; color: var(--muted); flex: none; }
+
   .doc h2 { font-size: 17px; margin: 28px 0 6px; }
   .doc p, .doc li { color: var(--muted); font-size: 15px; max-width: 62ch; }
   .doc ul { padding-left: 18px; }
