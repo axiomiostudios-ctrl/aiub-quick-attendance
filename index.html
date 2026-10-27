@@ -208,6 +208,8 @@
   .link-card-text { display: grid; flex: 1; min-width: 0; }
   .link-card-text b { font-weight: 600; }
   .link-card svg { width: 18px; height: 18px; color: var(--muted); flex: none; }
+  .studio code, .summary code { font: 12px var(--mono); }
+  .steps .kv { justify-content: flex-start; } .steps .kv b { text-align: left; font-weight: 400; } .steps .kv span { font-family: var(--mono); }
 
 </style>
 
@@ -236,6 +238,20 @@
       <span class="link-card-text"><b>Add to Excel</b><span class="meta">Get a Take Attendance button inside Excel</span></span>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
     </a>
+  </section>
+
+  <section id="stepExcel" hidden>
+    <p class="eyebrow">Excel add-in</p>
+    <h2>Add a Take Attendance button to Excel</h2>
+    <p class="lede" style="margin-top:12px">Excel loads the add-in from your Quick Attendance website, so this step happens there, not in this file.</p>
+    <div class="sheet summary steps">
+      <div class="kv"><span>1</span><b>Upload everything inside the <code>website</code> folder to GitHub and turn on GitHub Pages.</b></div>
+      <div class="kv"><span>2</span><b>Open your site and click <em>Add to Excel</em>, or go straight to <code>…github.io/quick-attendance/excel.html</code>.</b></div>
+      <div class="kv"><span>3</span><b>Pick IT install (everyone), Windows installer, Excel on the web or Mac.</b></div>
+    </div>
+    <div class="stack" style="margin-top:16px">
+      <button id="excelBackBtn" class="btn block">Back</button>
+    </div>
   </section>
 
   <section id="stepSetup" hidden>
@@ -307,7 +323,7 @@
       <button id="againBtn" class="btn quiet block">Start over with another file</button>
     </div>
   </section>
-  <footer class="studio">Made by <b>Forma Studio</b><span aria-hidden="true">·</span><a href="https://studioforma.com" target="_blank" rel="noopener">studioforma.com</a></footer>
+  <footer class="studio">Made by <b>Forma Studio</b><span aria-hidden="true">·</span><a href="https://studioforma.com" target="_blank" rel="noopener">studioforma.com</a><span aria-hidden="true">·</span><span>v1.4</span></footer>
 </main>
 
 <script>/*! ExcelJS 19-10-2023 */
@@ -445,8 +461,12 @@ window.QAUI = (() => {
     : 'At the end you download the updated file. In Chrome or Edge on a computer, marks save straight into your file instead.';
 
   // ---------- install as an app (hosted website only) ----------
-  if (PWA) {
+  if (MODE === 'file') {
     $('excelCard').hidden = false;
+    $('excelCard').onclick = e => { if (location.protocol === 'file:') { e.preventDefault(); show('stepExcel'); } };
+    $('excelBackBtn').onclick = () => show('stepOpen');
+  }
+  if (PWA) {
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
     let installEvt = null;
     window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; $('installBtn').hidden = false; });
@@ -477,7 +497,7 @@ window.QAUI = (() => {
   const kindOf = text => /^(p|present|1|yes|y)$/i.test(text) ? 'P' : /^(a|absent|0|no|n)$/i.test(text) ? 'A' : '';
   const markCell = s => ws.getRow(s.r).getCell(attCol);
   const markOf = s => kindOf(cellText(markCell(s)));
-  const show = id => { ['stepOpen', 'stepSetup', 'stepMark', 'stepDone'].forEach(s => $(s).hidden = s !== id); window.scrollTo(0, 0); };
+  const show = id => { ['stepOpen', 'stepExcel', 'stepSetup', 'stepMark', 'stepDone'].forEach(s => $(s).hidden = s !== id); window.scrollTo(0, 0); };
   function setStatus(text, cls) {
     const el = $('saveStatus'); el.textContent = text; el.className = 'status ' + (cls || '');
     clearTimeout(statusTimer);

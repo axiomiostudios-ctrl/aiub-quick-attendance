@@ -200,6 +200,8 @@
   .link-card-text { display: grid; flex: 1; min-width: 0; }
   .link-card-text b { font-weight: 600; }
   .link-card svg { width: 18px; height: 18px; color: var(--muted); flex: none; }
+  .studio code, .summary code { font: 12px var(--mono); }
+  .steps .kv { justify-content: flex-start; } .steps .kv b { text-align: left; font-weight: 400; } .steps .kv span { font-family: var(--mono); }
 
 </style>
 </head>
@@ -275,7 +277,7 @@
       <button id="againBtn" class="btn quiet block">Take another attendance</button>
     </div>
   </section>
-  <footer class="studio">Made by <b>Forma Studio</b><span aria-hidden="true">·</span><a href="https://studioforma.com" target="_blank" rel="noopener">studioforma.com</a></footer>
+  <footer class="studio">Made by <b>Forma Studio</b><span aria-hidden="true">·</span><a href="https://studioforma.com" target="_blank" rel="noopener">studioforma.com</a><span aria-hidden="true">·</span><span>v1.4</span></footer>
 </main>
 <script>// Excel add-in backend for the Quick Attendance panel (Office.js).
 window.QA_BACKEND = {
